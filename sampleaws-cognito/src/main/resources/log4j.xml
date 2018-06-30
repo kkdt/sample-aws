@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration debug="false" xmlns:log4j='http://jakarta.apache.org/log4j/'>
+
+   <appender name="logfile" class="org.apache.log4j.DailyRollingFileAppender">
+      <param name="file" value="${user.home}/.kkdt/sampleaws-cognito.log" />
+      <param name="append" value="true" />
+      <param name="datePattern" value="'.'yyyy-MM-dd" />
+      <layout class="org.apache.log4j.PatternLayout">
+         <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss} %-5p %c:%L %m%n" />
+      </layout>
+   </appender>
+   
+   
+   <logger name="org.apache" additivity="false">
+      <level value="warn" />
+      <appender-ref ref="logfile" />
+   </logger>
+   
+   <logger name="org.springframework" additivity="false">
+      <level value="warn" />
+      <appender-ref ref="logfile" />
+   </logger>
+   
+   <logger name="kkdt.sample.aws" additivity="false">
+      <level value="info" />
+      <appender-ref ref="logfile" />
+   </logger>
+   
+   <root>
+      <level value="info" />
+      <appender-ref ref="logfile" />
+   </root>
+
+</log4j:configuration>

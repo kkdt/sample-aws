@@ -1,0 +1,66 @@
+/** 
+ * Copyright (C) 2018 thinh ho
+ * This file is part of 'sample-aws' which is released under the MIT license.
+ * See LICENSE at the project root directory.
+ */
+
+buildscript {
+     repositories {
+        mavenCentral()
+        maven {
+           url 'https://github.com/kkdt/mavenrepo/raw/master'
+        }
+     }
+     dependencies {
+        classpath "kkdt.gradle.eclipseone:eclipseone:0.5"
+     }
+}
+
+description = 'AWS SDK Java Playground'
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+    
+    version = '0.1'
+    group = 'kkdt.sample'
+    
+    apply plugin: 'java'
+    
+    dependencies {
+        compile 'log4j:log4j:1.2.17'
+        compile 'commons-logging:commons-logging:1.1.3'
+        testCompile 'junit:junit:4.10'
+    }
+}
+
+apply plugin: 'eclipse'
+apply plugin: 'kkdt.gradle.eclipseone'
+
+defaultTasks 'clean','test'
+
+eclipse {
+    classpath {
+       downloadJavadoc = true
+       downloadSources = true
+    }
+    
+    project {
+       resourceFilter {
+          appliesTo = 'FOLDERS'
+          type = 'EXCLUDE_ALL'
+          matcher {
+            id = 'org.eclipse.ui.ide.multiFilter'
+            arguments = '1.0-name-matches-false-false-build'
+          }
+        }
+    }
+}
+
+// the root project does not have any build artifacts
+build.doLast {
+   delete buildDir
+}
+
+

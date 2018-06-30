@@ -1,0 +1,33 @@
+/**
+ * Copyright (C) 2018 thinh ho
+ * This file is part of 'sample-aws' which is released under the MIT license.
+ * See LICENSE at the project root directory.
+ */
+
+description = 'Cognito (sample-aws)'
+
+repositories {
+    maven {
+        url 'https://github.com/kkdt/mavenrepo/raw/master'
+    }
+}
+
+apply plugin: 'application'
+
+mainClassName = "kkdt.sample.aws.support.SampleAWS"
+
+dependencies {
+    compile project(':sampleaws-support')
+    
+    compile 'com.amazonaws:aws-java-sdk:1.11.354'
+    compile 'kkdt.generictable:swing-generictable:0.1'
+    compile 'com.nimbusds:nimbus-jose-jwt:4.23'
+
+    compile('org.springframework.boot:spring-boot-starter:2.0.3.RELEASE') {
+        exclude module: 'spring-boot-starter-logging'
+        exclude module: 'spring-boot-starter-log4j'
+    }
+}
+
+// installation goes to the root project 'build' directory
+distZip.destinationDir = rootProject.buildDir
