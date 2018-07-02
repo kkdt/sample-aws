@@ -37,13 +37,8 @@ import kkdt.sample.aws.support.RegistrationPanel;
 public class CognitoSignUpController extends CognitoController<SignUpEvent> {
     private static final Logger logger = Logger.getLogger(CognitoSignUpController.class);
     
-    public CognitoSignUpController(@Value("${cognito.poolid}") String poolId, 
-        @Value("${cognito.clientid}") String clientId,
-        @Value("${cognito.region}") String region,
-        @Value("${cognito.identitypool}") String identityPool,
-        @Value("${cognito.providerid}") String identityProvider) 
-    {
-        super(poolId, clientId, region, identityPool, identityProvider);
+    public CognitoSignUpController(@Value("${cognito.region:null}") String region) {
+        super(region);
     }
     
     /**
@@ -59,7 +54,7 @@ public class CognitoSignUpController extends CognitoController<SignUpEvent> {
         
         if(Objects.nonNull(email) && !"".equals(email)) {
             AdminCreateUserRequest cognitoRequest = new AdminCreateUserRequest()
-                .withUserPoolId(poolId)
+                .withUserPoolId(aws.getPoolId())
                 .withUsername(email)
                 .withUserAttributes(
                     new AttributeType()
@@ -102,7 +97,7 @@ public class CognitoSignUpController extends CognitoController<SignUpEvent> {
         
         ApplicationContext source = event.getApplicationContext();
         SignUpRequest request = new SignUpRequest()
-            .withClientId(clientId)
+            .withClientId(aws.getClientId())
             .withUsername(inputs.getEmail())
             .withPassword(String.valueOf(inputs.getPassword1()))
             .withUserAttributes(

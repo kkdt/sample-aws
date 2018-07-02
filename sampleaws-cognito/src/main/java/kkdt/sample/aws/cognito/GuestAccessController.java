@@ -23,19 +23,14 @@ import kkdt.sample.aws.cognito.event.GuestAccessEvent;
 public class GuestAccessController extends CognitoController<GuestAccessEvent> {
     private static final Logger logger = Logger.getLogger(GuestAccessController.class);
     
-    public GuestAccessController(@Value("${cognito.poolid}") String poolId, 
-        @Value("${cognito.clientid}") String clientId,
-        @Value("${cognito.region}") String region,
-        @Value("${cognito.identitypool}") String identityPool,
-        @Value("${cognito.providerid}") String identityProvider) 
-    {
-        super(poolId, clientId, region, identityPool, identityProvider);
+    public GuestAccessController(@Value("${cognito.region:null}") String region) {
+        super(region);
     }
 
     @Override
     public void onApplicationEvent(GuestAccessEvent event) {
         try {
-            GetIdResult identity = getUnauthenticatedIdentity();
+            GetIdResult identity = getUnauthenticatedIdentity(aws.getIdentityPool());
             String id = identity.getIdentityId();
             logger.info(identity);
             
@@ -45,8 +40,8 @@ public class GuestAccessController extends CognitoController<GuestAccessEvent> {
             logger.info(credentialResult);
             
             GetIdentityProviderByIdentifierResult identityProviderResult = cognito.getIdentityProviderByIdentifier(new GetIdentityProviderByIdentifierRequest()
-                .withUserPoolId(poolId)
-                .withIdpIdentifier(identityPool));
+                .withUserPoolId(aws.getPoolId())
+                .withIdpIdentifier(aws.getIdentityPool()));
             logger.info(identityProviderResult);
         } catch (NotAuthorizedException e) {
             error(event.reference, "Not Authorized", "Guest Access Error");
@@ -55,7 +50,7 @@ public class GuestAccessController extends CognitoController<GuestAccessEvent> {
         }
     }
     
-    protected GetIdResult getUnauthenticatedIdentity() {
+    protected GetIdResult getUnauthenticatedIdentity(String identityPool) {
         /*
          * The available provider names for Logins are as follows:
          *      Facebook: graph.facebook.com

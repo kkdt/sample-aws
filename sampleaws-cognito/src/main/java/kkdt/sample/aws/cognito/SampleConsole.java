@@ -5,28 +5,33 @@
  */
 package kkdt.sample.aws.cognito;
 
-import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.swing.Box;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JSeparator;
 import javax.swing.JTextField;
 
 import org.springframework.context.ApplicationContext;
 
-import com.amazonaws.services.cognitoidentity.model.Credentials;
-import com.amazonaws.services.cognitoidp.model.AuthenticationResultType;
-
 import kkdt.sample.aws.cognito.event.GuestAccessEvent;
 import kkdt.sample.aws.cognito.event.LoginEvent;
+import kkdt.sample.aws.cognito.event.ResetPasswordEvent;
 import kkdt.sample.aws.cognito.event.SignUpEvent;
 import kkdt.sample.aws.support.PasswordFieldUI;
 import kkdt.sample.aws.support.SamplePanel;
@@ -34,57 +39,75 @@ import kkdt.sample.aws.support.TextFieldUI;
 
 public class SampleConsole extends JFrame implements ActionListener {
     private static final long serialVersionUID = 5257690315704217352L;
-    private static final Dimension btnDimension = new Dimension(85, 25);
+    private static final Dimension btnDimension = new Dimension(150, 25);
     
     private final ApplicationContext applicationContext;
+    private final AWS identityProviders;
     
     private JButton loginBtn = new JButton("Login");
     private JButton signupBtn = new JButton("Signup");
     private JButton guestBtn = new JButton("Guest");
     private JButton createBtn = new JButton("Create");
+    private JButton resetPwdBtn = new JButton("Reset Password");
     private JTextField username = new JTextField();
     private JPasswordField password = new JPasswordField();
-    private AuthenticationResultType authentication;
-    private Credentials credentials;
+    private JComboBox<Entry<String, String>> providers = new JComboBox<>();
     
-    public SampleConsole(String title, ApplicationContext applicationContext) {
+    public SampleConsole(String title, ApplicationContext applicationContext, AWS identityProviders) {
         super(title);
         this.applicationContext = applicationContext;
+        this.identityProviders = identityProviders;
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
     
-    public Credentials getCredentials() {
-        return credentials;
-    }
-
-    public void setCredentials(Credentials credentials) {
-        this.credentials = credentials;
-    }
-
-    public AuthenticationResultType getAuthentication() {
-        return authentication;
-    }
-
-    public void setAuthentication(AuthenticationResultType authentication) {
-        this.authentication = authentication;
-    }
-
     public SampleConsole layoutComponents() {
+        providers.setRenderer(new DefaultListCellRenderer() {
+            private static final long serialVersionUID = -703245426245515436L;
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public Component getListCellRendererComponent(
+                JList<?> list,
+                Object value,
+                int index,
+                boolean isSelected,
+                boolean cellHasFocus)
+            {
+                JLabel l = (JLabel)super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                Entry<String, String> e = (Entry<String, String>)value;
+                l.setText(e.getKey());
+                return this;
+            }
+        });
+        
+        Set<Entry<String, String>> supportedProviders = identityProviders.providers();
+        supportedProviders.forEach(providers::addItem);
+        Entry<String, String> def = supportedProviders.stream()
+            .filter(e -> identityProviders.getDefaultProvider().equals(e.getKey()))
+            .findFirst()
+            .orElse(null);
+        providers.setSelectedItem(def);
+        
         SamplePanel contents = new SamplePanel().contents(p -> {
-            username.setUI(new TextFieldUI("Email", false, Color.lightGray));
-            password.setUI(new PasswordFieldUI("Password", false, Color.lightGray));
+            username.setUI(new TextFieldUI("Email", false));
+            password.setUI(new PasswordFieldUI("Password", false));
             
-            JPanel buttons = new JPanel();
-            buttons.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 5));
-            buttons.add(loginBtn);
-            buttons.add(signupBtn);
-            buttons.add(guestBtn);
-            buttons.add(createBtn);
+            JPanel buttons1 = new JPanel();
+            buttons1.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            buttons1.add(loginBtn);
+            buttons1.add(signupBtn);
+            
+            JPanel buttons2 = new JPanel();
+            buttons2.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            buttons2.add(guestBtn);
+            buttons2.add(createBtn);
+            buttons2.add(resetPwdBtn);
             
             loginBtn.setPreferredSize(btnDimension);
             signupBtn.setPreferredSize(btnDimension);
             guestBtn.setPreferredSize(btnDimension);
             createBtn.setPreferredSize(btnDimension);
+            resetPwdBtn.setPreferredSize(btnDimension);
             
             p.setLayout(new GridBagLayout());
             GridBagConstraints c = new GridBagConstraints();
@@ -92,32 +115,75 @@ public class SampleConsole extends JFrame implements ActionListener {
             
             c.gridx = 0;
             c.gridy = y++;
-            c.gridwidth = 2;
+            c.gridwidth = 3;
             c.fill = GridBagConstraints.HORIZONTAL;
-            p.add(username, c);
+            p.add(new JSeparator(JSeparator.HORIZONTAL), c);
+            
+            c.gridx = 0;
+            c.gridy = y;
+            c.gridwidth = 1;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            p.add(new JLabel("Login As (ID Provider): "), c);
+            
+            c.gridx = 1;
+            c.gridy = y;
+            c.gridwidth = 1;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            p.add(providers, c);
+            
+            c.gridx = 2;
+            c.gridy = y++;
+            c.gridwidth = 1;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            p.add(Box.createHorizontalStrut(50), c);
             
             c.gridx = 0;
             c.gridy = y++;
-            c.gridwidth = 2;
+            c.gridwidth = 3;
             c.fill = GridBagConstraints.HORIZONTAL;
             p.add(Box.createVerticalStrut(5), c);
             
             c.gridx = 0;
             c.gridy = y++;
-            c.gridwidth = 2;
+            c.gridwidth = 3;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            p.add(username, c);
+            
+            c.gridx = 0;
+            c.gridy = y++;
+            c.gridwidth = 3;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            p.add(Box.createVerticalStrut(5), c);
+            
+            c.gridx = 0;
+            c.gridy = y++;
+            c.gridwidth = 3;
             c.fill = GridBagConstraints.HORIZONTAL;
             p.add(password, c);
             
             c.gridx = 0;
             c.gridy = y++;
-            c.gridwidth = 2;
-            c.fill = GridBagConstraints.NONE;
-            c.anchor = GridBagConstraints.WEST;
-            p.add(buttons, c);
+            c.gridwidth = 3;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            p.add(new JSeparator(JSeparator.HORIZONTAL), c);
             
             c.gridx = 0;
             c.gridy = y++;
-            c.gridwidth = 2;
+            c.gridwidth = 3;
+            c.fill = GridBagConstraints.NONE;
+            c.anchor = GridBagConstraints.WEST;
+            p.add(buttons1, c);
+            
+            c.gridx = 0;
+            c.gridy = y++;
+            c.gridwidth = 3;
+            c.fill = GridBagConstraints.NONE;
+            c.anchor = GridBagConstraints.WEST;
+            p.add(buttons2, c);
+            
+            c.gridx = 0;
+            c.gridy = y++;
+            c.gridwidth = 3;
             c.fill = GridBagConstraints.HORIZONTAL;
             p.add(Box.createHorizontalStrut(300), c);
             
@@ -125,6 +191,7 @@ public class SampleConsole extends JFrame implements ActionListener {
             signupBtn.addActionListener(this);
             guestBtn.addActionListener(this);
             createBtn.addActionListener(this);
+            resetPwdBtn.addActionListener(this);
             
         }).layoutComponents();
         
@@ -147,11 +214,29 @@ public class SampleConsole extends JFrame implements ActionListener {
         case "Create":
             applicationContext.publishEvent(new SignUpEvent(applicationContext, this, true));
             break;
-        case "Signout":
-            break;
-        case "Forgot Password":
+        case "Reset Password":
+            applicationContext.publishEvent(new ResetPasswordEvent(applicationContext, this));
             break;
         }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public String getIdentityProvider() {
+        Entry<String, String> selected = (Entry<String, String>)providers.getSelectedItem();
+        return selected.getValue();
+    }
+    
+    public void enableActions(boolean enable) {
+        loginBtn.setEnabled(enable);
+        signupBtn.setEnabled(enable);
+        guestBtn.setEnabled(enable);
+        createBtn.setEnabled(enable);
+    }
+    
+    public void enableInputs(boolean enable) {
+        username.setEnabled(enable);
+        password.setEnabled(enable);
+        providers.setEnabled(enable);
     }
     
     public void enableLogin(boolean enable) {

@@ -29,18 +29,14 @@ import kkdt.sample.aws.support.VerificationPanel;
 public class CognitoVerificationController extends CognitoController<CreateUserEvent> {
     private static final Logger logger = Logger.getLogger(CognitoVerificationController.class);
     
-    public CognitoVerificationController(@Value("${cognito.poolid}") String poolId, 
-        @Value("${cognito.clientid}") String clientId,
-        @Value("${cognito.region}") String region,
-        @Value("${cognito.identitypool}") String identityPool,
-        @Value("${cognito.providerid}") String identityProvider) 
-    {
-        super(poolId, clientId, region, identityPool, identityProvider);
+    public CognitoVerificationController(@Value("${cognito.region:null}") String region) {
+        super(region);
     }
     
     public void doVerification(CreateUserEvent event) {
         UserType user = event.user;
         String email = user.getUsername();
+        String clientId = aws.getClientId();
         
         VerificationPanel contents = new VerificationPanel(email, "Code", "Password", "Confirm Password");
         boolean done = false;

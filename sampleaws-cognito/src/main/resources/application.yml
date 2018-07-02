@@ -1,0 +1,11 @@
+idps:
+  # If default provider is set, then the properties file must have an equivalent 
+  # provider identifier.
+  defaultProvider: h01
+  # providers that are supported by cognito
+  providers:
+    Facebook: graph.facebook.com
+    Google: accounts.google.com
+    Amazon: www.amazon.com
+    Twitter: api.twitter.com
+    Digits: www.digits.com 

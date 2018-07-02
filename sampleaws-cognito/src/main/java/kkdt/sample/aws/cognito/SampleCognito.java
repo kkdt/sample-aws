@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
 import org.springframework.core.env.Environment;
 
 /**
@@ -25,7 +26,10 @@ import org.springframework.core.env.Environment;
  */
 @SpringBootApplication
 @ComponentScan({"kkdt.sample.aws.cognito"})
-@PropertySource("classpath:/tools/sampleaws-cognito.properties")
+@PropertySources({
+    @PropertySource("classpath:/cognito/sampleaws-cognito.properties"),
+    @PropertySource(value="${cognito.config}", ignoreResourceNotFound=true)
+})
 public class SampleCognito implements ApplicationRunner {
     private static final Logger logger = Logger.getLogger(SampleCognito.class);
     
@@ -34,6 +38,9 @@ public class SampleCognito implements ApplicationRunner {
     
     @Autowired(required=true)
     private ApplicationContext applicationContext;
+    
+    @Autowired(required=true)
+    private AWS identityProviders;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -41,12 +48,13 @@ public class SampleCognito implements ApplicationRunner {
         logger.info(String.format("Cognito ClientID: %s", environment.getProperty("cognito.clientid")));
         logger.info(String.format("Region: %s", environment.getProperty("cognito.region")));
         
-        SampleConsole console = new SampleConsole(environment.getProperty("cognito.title"), applicationContext)
+        SampleConsole console = new SampleConsole(environment.getProperty("cognito.title"), applicationContext, identityProviders)
             .layoutComponents();
         
         SwingUtilities.invokeLater(() -> {
+            console.setLocationRelativeTo(null);
             console.pack();
-            console.setSize(500, 300);
+            console.setSize(500, 200);
             console.setVisible(true);
             console.setResizable(false);
         });

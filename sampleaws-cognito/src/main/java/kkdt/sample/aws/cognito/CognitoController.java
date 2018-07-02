@@ -5,11 +5,16 @@
  */
 package kkdt.sample.aws.cognito;
 
+import java.awt.Dimension;
 import java.awt.Window;
 
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.ScrollPaneConstants;
 
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
@@ -29,6 +34,11 @@ import com.amazonaws.services.cognitoidp.model.InitiateAuthResult;
 /**
  * Base controller class that exposes the Cognito client.
  * 
+ * <p>
+ * "Cognito is the AWS solution for managing user profiles, and Federated 
+ * Identities help keep track of your users across multiple logins"
+ * </p>
+ * 
  * @author thinh ho
  *
  * @param <T> the event to process.
@@ -37,20 +47,15 @@ import com.amazonaws.services.cognitoidp.model.InitiateAuthResult;
 public abstract class CognitoController<T extends ApplicationEvent> implements ApplicationListener<T> {
     private static final Logger logger = Logger.getLogger(CognitoController.class);
     
-    protected final String poolId;
-    protected final String clientId;
     protected final String region;
-    protected final String identityPool;
-    protected final String identityProvider;
     protected AmazonCognitoIdentity cognitoIdentity;
     protected AWSCognitoIdentityProvider cognito;
     
-    public CognitoController(String poolId, String clientId, String region, String identityPool, String identityProvider) {
-        this.poolId = poolId;
-        this.clientId = clientId;
+    @Autowired(required=true)
+    protected AWS aws;
+    
+    public CognitoController(String region) {
         this.region = region;
-        this.identityPool = identityPool;
-        this.identityProvider = identityProvider;
         
         cognito = AWSCognitoIdentityProviderClientBuilder.standard()
             .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
@@ -64,8 +69,20 @@ public abstract class CognitoController<T extends ApplicationEvent> implements A
     }
     
     protected void error(Window reference, String error, String title) {
+        JTextArea area = new JTextArea(error);
+        area.setWrapStyleWord(true);
+        area.setLineWrap(true);
+        area.setEditable(false);
+        area.setFocusable(false);
+        area.setOpaque(false);
+        
+        JScrollPane scrollPane =  new JScrollPane(area,
+            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, 
+            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setPreferredSize(new Dimension(400, 100));
+        
         JOptionPane.showMessageDialog(reference, 
-            error, 
+            scrollPane, 
             title, 
             JOptionPane.ERROR_MESSAGE);
     }
@@ -88,7 +105,7 @@ public abstract class CognitoController<T extends ApplicationEvent> implements A
     }
     
     protected String outputCredentials(Credentials credentials) {
-        StringBuilder b = new StringBuilder("Authentication \n");
+        StringBuilder b = new StringBuilder("Credentials \n");
         b.append(String.format("   Access Key ID: %s", credentials.getAccessKeyId())).append("\n");
         b.append(String.format("   Secret Key: %s", credentials.getSecretKey())).append("\n");
         b.append(String.format("   Session: %s ", credentials.getSessionToken())).append("\n");
@@ -96,10 +113,10 @@ public abstract class CognitoController<T extends ApplicationEvent> implements A
         return b.toString();
     }
     
-    public AuthenticationResultType authenticate(SampleConsole console, String user, char[] password) {
+    public AuthenticationResultType authenticate(String user, char[] password) {
         InitiateAuthRequest authRequest = new InitiateAuthRequest()
             .withAuthFlow(AuthFlowType.USER_PASSWORD_AUTH)
-            .withClientId(clientId)
+            .withClientId(aws.getClientId())
             .addAuthParametersEntry("USERNAME", user)
             .addAuthParametersEntry("PASSWORD", String.valueOf(password));
         

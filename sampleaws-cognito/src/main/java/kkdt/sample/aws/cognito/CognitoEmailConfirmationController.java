@@ -21,13 +21,8 @@ import kkdt.sample.aws.support.VerificationPanel;
 public class CognitoEmailConfirmationController extends CognitoController<EmailConfirmationEvent> {
     private static final Logger logger = Logger.getLogger(CognitoEmailConfirmationController.class);
 
-    public CognitoEmailConfirmationController(@Value("${cognito.poolid}") String poolId, 
-        @Value("${cognito.clientid}") String clientId,
-        @Value("${cognito.region}") String region,
-        @Value("${cognito.identitypool}") String identityPool,
-        @Value("${cognito.providerid}") String identityProvider) 
-    {
-        super(poolId, clientId, region, identityPool, identityProvider);
+    public CognitoEmailConfirmationController(@Value("${cognito.region:null}") String region) {
+        super(region);
     }
     
     public void confirmEmail(EmailConfirmationEvent event) {
@@ -44,7 +39,7 @@ public class CognitoEmailConfirmationController extends CognitoController<EmailC
                 ConfirmSignUpRequest request = new ConfirmSignUpRequest()
                     .withUsername(event.email)
                     .withConfirmationCode(panel.getTempValue())
-                    .withClientId(clientId);
+                    .withClientId(aws.getClientId());
                 ConfirmSignUpResult confirmationResult = cognito.confirmSignUp(request);
                 logger.info(String.format("Email confirmed %s, request %s", 
                     event.email, 

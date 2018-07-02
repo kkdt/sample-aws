@@ -14,7 +14,9 @@ repositories {
 
 apply plugin: 'application'
 
+// application plugin configurations
 mainClassName = "kkdt.sample.aws.support.SampleAWS"
+applicationDefaultJvmArgs = ["-Dkkdt.app=kkdt.sample.aws.cognito.SampleCognito"]
 
 dependencies {
     compile project(':sampleaws-support')
