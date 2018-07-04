@@ -12,6 +12,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -42,7 +43,7 @@ public class SampleConsole extends JFrame implements ActionListener {
     private static final Dimension btnDimension = new Dimension(150, 25);
     
     private final ApplicationContext applicationContext;
-    private final AWS identityProviders;
+    private final AWS aws;
     
     private JButton loginBtn = new JButton("Login");
     private JButton signupBtn = new JButton("Signup");
@@ -53,18 +54,18 @@ public class SampleConsole extends JFrame implements ActionListener {
     private JPasswordField password = new JPasswordField();
     private JComboBox<Entry<String, String>> providers = new JComboBox<>();
     
-    public SampleConsole(String title, ApplicationContext applicationContext, AWS identityProviders) {
+    public SampleConsole(String title, ApplicationContext applicationContext, AWS aws) {
         super(title);
         this.applicationContext = applicationContext;
-        this.identityProviders = identityProviders;
+        this.aws = aws;
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
     
+    @SuppressWarnings("unchecked")
     public SampleConsole layoutComponents() {
         providers.setRenderer(new DefaultListCellRenderer() {
             private static final long serialVersionUID = -703245426245515436L;
 
-            @SuppressWarnings("unchecked")
             @Override
             public Component getListCellRendererComponent(
                 JList<?> list,
@@ -80,10 +81,10 @@ public class SampleConsole extends JFrame implements ActionListener {
             }
         });
         
-        Set<Entry<String, String>> supportedProviders = identityProviders.providers();
+        Set<Entry<String, String>> supportedProviders = aws.providers();
         supportedProviders.forEach(providers::addItem);
         Entry<String, String> def = supportedProviders.stream()
-            .filter(e -> identityProviders.getDefaultProvider().equals(e.getKey()))
+            .filter(e -> aws.getDefaultProvider().equals(e.getKey()))
             .findFirst()
             .orElse(null);
         providers.setSelectedItem(def);
@@ -193,12 +194,36 @@ public class SampleConsole extends JFrame implements ActionListener {
             createBtn.addActionListener(this);
             resetPwdBtn.addActionListener(this);
             
+            providers.addItemListener(e -> {
+                switch(e.getStateChange()) {
+                case ItemEvent.SELECTED:
+                    Entry<String,String> entry = (Entry<String,String>)e.getItem();
+                    boolean enable = true;
+                    if(!entry.getKey().equals(aws.getDefaultProvider())) {
+                        username.setText(entry.getKey());
+                        password.setText("");
+                        enable = false;
+                    } else {
+                        username.setText("");
+                    }
+                    username.setEnabled(enable);
+                    password.setEnabled(enable);
+                    
+                    resetPwdBtn.setEnabled(enable);
+                    guestBtn.setEnabled(enable);
+                    createBtn.setEnabled(enable);
+                    signupBtn.setEnabled(enable);
+                    break;
+                }
+            });
+            
         }).layoutComponents();
         
         setContentPane(contents);
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void actionPerformed(ActionEvent e) {
         switch(e.getActionCommand()) {
@@ -206,7 +231,12 @@ public class SampleConsole extends JFrame implements ActionListener {
             applicationContext.publishEvent(new SignUpEvent(applicationContext, this));
             break;
         case "Login":
-            applicationContext.publishEvent(new LoginEvent(applicationContext, this, username.getText().trim(), password.getPassword()));
+            Entry<String, String> selected = (Entry<String, String>)providers.getSelectedItem();
+            applicationContext.publishEvent(new LoginEvent(applicationContext, this, 
+                selected.getKey(),
+                selected.getValue(),
+                username.getText().trim(), 
+                password.getPassword()));
             break;
         case "Guest":
             applicationContext.publishEvent(new GuestAccessEvent(applicationContext, this));
@@ -220,17 +250,12 @@ public class SampleConsole extends JFrame implements ActionListener {
         }
     }
     
-    @SuppressWarnings("unchecked")
-    public String getIdentityProvider() {
-        Entry<String, String> selected = (Entry<String, String>)providers.getSelectedItem();
-        return selected.getValue();
-    }
-    
     public void enableActions(boolean enable) {
         loginBtn.setEnabled(enable);
         signupBtn.setEnabled(enable);
         guestBtn.setEnabled(enable);
         createBtn.setEnabled(enable);
+        resetPwdBtn.setEnabled(enable);
     }
     
     public void enableInputs(boolean enable) {

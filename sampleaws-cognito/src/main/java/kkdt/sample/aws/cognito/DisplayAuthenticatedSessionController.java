@@ -7,7 +7,6 @@ package kkdt.sample.aws.cognito;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.text.ParseException;
 import java.util.Date;
 
 import javax.swing.BorderFactory;
@@ -23,7 +22,6 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.amazonaws.auth.AWSCredentials;
 import com.nimbusds.jose.Payload;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
@@ -57,16 +55,14 @@ public class DisplayAuthenticatedSessionController extends CognitoController<Aut
     @Override
     public void onApplicationEvent(AuthenticatedEvent event) {
         try {
-            AWSCredentials awsCredentials = event.clientCredentialsProvider != null ? 
-                event.clientCredentialsProvider.getCredentials() : null;
             JSONObject _payload = null;
-            if(awsCredentials != null) {
-                SignedJWT jwt = (SignedJWT)JWTParser.parse(awsCredentials.getAWSSecretKey());
+            if(event.awsSecretKey != null) {
+                SignedJWT jwt = (SignedJWT)JWTParser.parse(event.awsSecretKey);
                 Payload payload = jwt.getPayload();
                 _payload = payload.toJSONObject();
             }
             displayAuthentication(_payload);
-        } catch (ParseException e) {
+        } catch (Exception e) {
             error(null, e.getMessage(), "Display Authentication Error");
             logger.error(e);
         }
@@ -75,6 +71,7 @@ public class DisplayAuthenticatedSessionController extends CognitoController<Aut
     /**
      * http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
      * 
+     *      Amazon User Pool
      *      "sub":"0d1113ba-ea37-494f-aeeb-11d1b6e2b43a",
      *      "email_verified":true,
      *      "birthdate":"",
@@ -88,6 +85,17 @@ public class DisplayAuthenticatedSessionController extends CognitoController<Aut
      *      "exp":1530319899,
      *      "iat":1530316299,
      *      "family_name":"",
+     *      "email":""
+     *      
+     *      Google
+     *      "at_hash":"",
+     *      "aud":"",
+     *      "sub":"",
+     *      "email_verified":true,
+     *      "azp":"",
+     *      "iss":"",
+     *      "exp":1530730866,
+     *      "iat":1530727266,
      *      "email":""
      *      
      * @param payload
@@ -120,9 +128,24 @@ public class DisplayAuthenticatedSessionController extends CognitoController<Aut
             panel.add(new JLabel("DOB")); panel.add(new JLabel(dob));
             panel.add(new JLabel("Issuer")); panel.add(new JLabel(iss));
             panel.add(new JLabel("Cognito Username")); panel.add(new JLabel(cognitoUsername));
-            panel.add(new JLabel("Authentication time")); panel.add(new JLabel(new Date(Long.parseLong(authTime) * 1000L).toString()));
-            panel.add(new JLabel("IDToken expiration time")); panel.add(new JLabel(new Date(Long.parseLong(exp) * 1000L).toString()));
-            panel.add(new JLabel("Issued time")); panel.add(new JLabel(new Date(Long.parseLong(iat) * 1000L).toString())); // Time at which the JWT was issued.
+            panel.add(new JLabel("Authentication time"));
+            try {
+                panel.add(new JLabel(new Date(Long.parseLong(authTime) * 1000L).toString()));
+            } catch (Exception e) {
+                panel.add(new JLabel("N/A"));
+            }
+            panel.add(new JLabel("IDToken expiration time"));
+            try {
+                panel.add(new JLabel(new Date(Long.parseLong(exp) * 1000L).toString()));
+            } catch (Exception e) {
+                panel.add(new JLabel("N/A"));
+            }
+            panel.add(new JLabel("Issued time")); 
+            try {
+                panel.add(new JLabel(new Date(Long.parseLong(iat) * 1000L).toString())); // Time at which the JWT was issued.
+            } catch (Exception e) {
+                panel.add(new JLabel("N/A"));
+            }
             panel.add(new JLabel("Token use")); panel.add(new JLabel(tokenUse));
             panel.add(new JLabel("Audience")); panel.add(new JLabel(aud));
             panel.add(new JLabel("Event ID")); panel.add(new JLabel(eventId));

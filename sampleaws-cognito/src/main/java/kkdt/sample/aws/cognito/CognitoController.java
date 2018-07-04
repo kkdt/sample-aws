@@ -13,7 +13,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 
-import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
@@ -24,12 +23,13 @@ import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.services.cognitoidentity.AmazonCognitoIdentity;
 import com.amazonaws.services.cognitoidentity.AmazonCognitoIdentityClientBuilder;
 import com.amazonaws.services.cognitoidentity.model.Credentials;
+import com.amazonaws.services.cognitoidentity.model.GetCredentialsForIdentityRequest;
+import com.amazonaws.services.cognitoidentity.model.GetCredentialsForIdentityResult;
+import com.amazonaws.services.cognitoidentity.model.GetIdRequest;
+import com.amazonaws.services.cognitoidentity.model.GetIdResult;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClientBuilder;
-import com.amazonaws.services.cognitoidp.model.AuthFlowType;
 import com.amazonaws.services.cognitoidp.model.AuthenticationResultType;
-import com.amazonaws.services.cognitoidp.model.InitiateAuthRequest;
-import com.amazonaws.services.cognitoidp.model.InitiateAuthResult;
 
 /**
  * Base controller class that exposes the Cognito client.
@@ -45,8 +45,6 @@ import com.amazonaws.services.cognitoidp.model.InitiateAuthResult;
  */
 @Component
 public abstract class CognitoController<T extends ApplicationEvent> implements ApplicationListener<T> {
-    private static final Logger logger = Logger.getLogger(CognitoController.class);
-    
     protected final String region;
     protected AmazonCognitoIdentity cognitoIdentity;
     protected AWSCognitoIdentityProvider cognito;
@@ -113,37 +111,36 @@ public abstract class CognitoController<T extends ApplicationEvent> implements A
         return b.toString();
     }
     
-    public AuthenticationResultType authenticate(String user, char[] password) {
-        InitiateAuthRequest authRequest = new InitiateAuthRequest()
-            .withAuthFlow(AuthFlowType.USER_PASSWORD_AUTH)
-            .withClientId(aws.getClientId())
-            .addAuthParametersEntry("USERNAME", user)
-            .addAuthParametersEntry("PASSWORD", String.valueOf(password));
-        
-        /*
-         * The authentication parameters. These are inputs corresponding to the 
-         * AuthFlow that you are invoking.
-         *  
-         * The required values depend on the value of AuthFlow:
-         * 
-         * For USER_SRP_AUTH: 
-         *      USERNAME (required), 
-         *      SRP_A (required), 
-         *      SECRET_HASH (required if the app client is configured with a client secret), 
-         *      DEVICE_KEY
-         * For REFRESH_TOKEN_AUTH/REFRESH_TOKEN: 
-         *      REFRESH_TOKEN (required), 
-         *      SECRET_HASH (required if the app client is configured with a client secret), 
-         *      DEVICE_KEY
-         * For CUSTOM_AUTH: 
-         *      USERNAME (required), 
-         *      SECRET_HASH (if app client is configured with client secret), 
-         *      DEVICE_KEY
-         */
-        
-        InitiateAuthResult authResult = cognito.initiateAuth(authRequest);
-        logger.info(outputAuthentication(authResult.getAuthenticationResult()));
-        AuthenticationResultType auth = authResult.getAuthenticationResult();
-        return auth;
+    /**
+     * Obtain a Cognito Identity using the provider's information.
+     * 
+     * @param providerId
+     * @param providerToken
+     * @return
+     */
+    protected GetIdResult getCognitoId(String providerId, String providerToken) {
+        GetIdRequest idRequest = new GetIdRequest()
+            .withIdentityPoolId(aws.getIdentityPool())
+            .addLoginsEntry(providerId, providerToken);
+        GetIdResult idResult = cognitoIdentity.getId(idRequest);
+        return idResult;
+    }
+    
+    /**
+     * Obtain the credentials for the configured identity pool for the specified
+     * identity provider. 
+     * 
+     * @param providerId
+     * @param providerToken
+     * @return
+     */
+    protected Credentials getCredentials(String providerId, String providerToken) {
+        GetIdResult idResult = getCognitoId(providerId, providerToken);
+        GetCredentialsForIdentityRequest credentialRequest = new GetCredentialsForIdentityRequest()
+            .withIdentityId(idResult.getIdentityId())
+            .addLoginsEntry(providerId, providerToken);
+        GetCredentialsForIdentityResult credentialResult = cognitoIdentity.getCredentialsForIdentity(credentialRequest);
+        Credentials credentials = credentialResult.getCredentials();
+        return credentials;
     }
 }

@@ -15,12 +15,11 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.cognitoidentity.model.Credentials;
-import com.amazonaws.services.cognitoidentity.model.GetCredentialsForIdentityRequest;
-import com.amazonaws.services.cognitoidentity.model.GetCredentialsForIdentityResult;
-import com.amazonaws.services.cognitoidentity.model.GetIdRequest;
-import com.amazonaws.services.cognitoidentity.model.GetIdResult;
 import com.amazonaws.services.cognitoidentity.model.NotAuthorizedException;
+import com.amazonaws.services.cognitoidp.model.AuthFlowType;
 import com.amazonaws.services.cognitoidp.model.AuthenticationResultType;
+import com.amazonaws.services.cognitoidp.model.InitiateAuthRequest;
+import com.amazonaws.services.cognitoidp.model.InitiateAuthResult;
 
 import kkdt.sample.aws.cognito.event.AuthenticatedEvent;
 import kkdt.sample.aws.cognito.event.LoginEvent;
@@ -33,12 +32,20 @@ public class CognitoLoginController extends CognitoController<LoginEvent> {
         super(region);
     }
     
+    protected boolean supportProvider(String provider) {
+        return aws.getDefaultProvider().equals(provider);
+    }
+    
     @Override
     public void onApplicationEvent(LoginEvent event) {
         try {
-            String identityPool = aws.getIdentityPool();
-            // the provider the user chose
-            String identityProvider = event.reference.getIdentityProvider();
+            String identityProviderId = event.identityProviderId;
+            
+            if(!supportProvider(event.identityProviderName)) {
+                logger.info(String.format("Provider %s is not supported by %s", 
+                    event.identityProviderName, getClass().getSimpleName()));
+                return ;
+            }
             
             AuthenticationResultType auth = authenticate(event.email, event.password);
             AWSCredentials clientCredentials = new BasicAWSCredentials(auth.getAccessToken(), auth.getIdToken());
@@ -60,22 +67,14 @@ public class CognitoLoginController extends CognitoController<LoginEvent> {
             // Example identity id: region and user pool id below
             // cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_EPyUfpQq7
             
-            GetIdRequest idRequest = new GetIdRequest()
-                .withIdentityPoolId(identityPool)
-                .addLoginsEntry(identityProvider, auth.getIdToken());
-            GetIdResult idResult = cognitoIdentity.getId(idRequest);
-            logger.info(idResult);
-            
-            GetCredentialsForIdentityRequest credentialRequest = new GetCredentialsForIdentityRequest()
-                .withIdentityId(idResult.getIdentityId())
-                .addLoginsEntry(identityProvider, auth.getIdToken());
-            GetCredentialsForIdentityResult credentialResult = cognitoIdentity.getCredentialsForIdentity(credentialRequest);
-            Credentials credentials = credentialResult.getCredentials();
+            Credentials credentials = getCredentials(identityProviderId, auth.getIdToken());
             logger.info(outputCredentials(credentials));
             
             // notify that the user has been fully authenticated
             ApplicationContext context = event.getApplicationContext();
-            context.publishEvent(new AuthenticatedEvent(context, event.reference, authenticatedCredentials, credentials));
+            context.publishEvent(new AuthenticatedEvent(context, event.reference, 
+                authenticatedCredentials.getCredentials().getAWSSecretKey(), 
+                credentials));
             
             SampleConsole console = event.reference;
             console.enableActions(false);
@@ -86,5 +85,39 @@ public class CognitoLoginController extends CognitoController<LoginEvent> {
         } catch (Exception e) {
             error(event.reference, e.getMessage(), "Guest Access Error");
         }
+    }
+    
+    public AuthenticationResultType authenticate(String user, char[] password) {
+        InitiateAuthRequest authRequest = new InitiateAuthRequest()
+            .withAuthFlow(AuthFlowType.USER_PASSWORD_AUTH)
+            .withClientId(aws.getClientId())
+            .addAuthParametersEntry("USERNAME", user)
+            .addAuthParametersEntry("PASSWORD", String.valueOf(password));
+        
+        /*
+         * The authentication parameters. These are inputs corresponding to the 
+         * AuthFlow that you are invoking.
+         *  
+         * The required values depend on the value of AuthFlow:
+         * 
+         * For USER_SRP_AUTH: 
+         *      USERNAME (required), 
+         *      SRP_A (required), 
+         *      SECRET_HASH (required if the app client is configured with a client secret), 
+         *      DEVICE_KEY
+         * For REFRESH_TOKEN_AUTH/REFRESH_TOKEN: 
+         *      REFRESH_TOKEN (required), 
+         *      SECRET_HASH (required if the app client is configured with a client secret), 
+         *      DEVICE_KEY
+         * For CUSTOM_AUTH: 
+         *      USERNAME (required), 
+         *      SECRET_HASH (if app client is configured with client secret), 
+         *      DEVICE_KEY
+         */
+        
+        InitiateAuthResult authResult = cognito.initiateAuth(authRequest);
+        logger.info(outputAuthentication(authResult.getAuthenticationResult()));
+        AuthenticationResultType auth = authResult.getAuthenticationResult();
+        return auth;
     }
 }

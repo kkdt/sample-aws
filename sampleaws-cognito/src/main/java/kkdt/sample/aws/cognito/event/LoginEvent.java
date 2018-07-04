@@ -14,9 +14,18 @@ public class LoginEvent extends CognitoEvent {
     
     public final String email;
     public final char[] password;
+    public final String identityProviderName;
+    public final String identityProviderId;
     
-    public LoginEvent(ApplicationContext applicationContext, SampleConsole reference, String email, char[] password) {
+    public LoginEvent(ApplicationContext applicationContext, SampleConsole reference, 
+        String identityProviderName,
+        String identityProviderId,
+        String email, 
+        char[] password) 
+    {
         super(applicationContext, reference);
+        this.identityProviderName = identityProviderName;
+        this.identityProviderId = identityProviderId;
         this.email = email;
         this.password = password;
     }

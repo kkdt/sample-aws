@@ -7,7 +7,6 @@ package kkdt.sample.aws.cognito.event;
 
 import org.springframework.context.ApplicationContext;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.cognitoidentity.model.Credentials;
 
 import kkdt.sample.aws.cognito.SampleConsole;
@@ -29,7 +28,7 @@ public class AuthenticatedEvent extends CognitoEvent {
     /**
      * Used to access and securely sign requests to AWS resources.
      */
-    public final AWSCredentialsProvider clientCredentialsProvider;
+    public final String awsSecretKey;
     
     /**
      * Credentials for the provider that the user used to log into the application 
@@ -37,9 +36,9 @@ public class AuthenticatedEvent extends CognitoEvent {
      */
     public final Credentials credentials;
 
-    public AuthenticatedEvent(ApplicationContext source, SampleConsole console, AWSCredentialsProvider clientCredentialsProvider, Credentials credentials) {
+    public AuthenticatedEvent(ApplicationContext source, SampleConsole console, String awsSecretKey, Credentials credentials) {
         super(source, console);
-        this.clientCredentialsProvider = clientCredentialsProvider;
+        this.awsSecretKey = awsSecretKey;
         this.credentials = credentials;
     }
 
