@@ -38,7 +38,9 @@ import kkdt.sample.aws.support.PasswordFieldUI;
 import kkdt.sample.aws.support.SamplePanel;
 import kkdt.sample.aws.support.TextFieldUI;
 
-public class SampleConsole extends JFrame implements ActionListener {
+public class SampleConsole extends JFrame 
+    implements ActionListener
+{
     private static final long serialVersionUID = 5257690315704217352L;
     private static final Dimension btnDimension = new Dimension(150, 25);
     
@@ -50,6 +52,7 @@ public class SampleConsole extends JFrame implements ActionListener {
     private JButton guestBtn = new JButton("Guest");
     private JButton createBtn = new JButton("Create");
     private JButton resetPwdBtn = new JButton("Reset Password");
+    private JButton signUpAsBtn = new JButton("Signup As");
     private JTextField username = new JTextField();
     private JPasswordField password = new JPasswordField();
     private JComboBox<Entry<String, String>> providers = new JComboBox<>();
@@ -88,6 +91,7 @@ public class SampleConsole extends JFrame implements ActionListener {
             .findFirst()
             .orElse(null);
         providers.setSelectedItem(def);
+        signUpAsBtn.setEnabled(false);
         
         SamplePanel contents = new SamplePanel().contents(p -> {
             username.setUI(new TextFieldUI("Email", false));
@@ -97,6 +101,7 @@ public class SampleConsole extends JFrame implements ActionListener {
             buttons1.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
             buttons1.add(loginBtn);
             buttons1.add(signupBtn);
+            buttons1.add(signUpAsBtn);
             
             JPanel buttons2 = new JPanel();
             buttons2.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -109,6 +114,7 @@ public class SampleConsole extends JFrame implements ActionListener {
             guestBtn.setPreferredSize(btnDimension);
             createBtn.setPreferredSize(btnDimension);
             resetPwdBtn.setPreferredSize(btnDimension);
+            signUpAsBtn.setPreferredSize(btnDimension);
             
             p.setLayout(new GridBagLayout());
             GridBagConstraints c = new GridBagConstraints();
@@ -193,6 +199,7 @@ public class SampleConsole extends JFrame implements ActionListener {
             guestBtn.addActionListener(this);
             createBtn.addActionListener(this);
             resetPwdBtn.addActionListener(this);
+            signUpAsBtn.addActionListener(this);
             
             providers.addItemListener(e -> {
                 switch(e.getStateChange()) {
@@ -213,6 +220,7 @@ public class SampleConsole extends JFrame implements ActionListener {
                     guestBtn.setEnabled(enable);
                     createBtn.setEnabled(enable);
                     signupBtn.setEnabled(enable);
+                    signUpAsBtn.setEnabled(!enable);
                     break;
                 }
             });
@@ -229,6 +237,8 @@ public class SampleConsole extends JFrame implements ActionListener {
         switch(e.getActionCommand()) {
         case "Signup":
             applicationContext.publishEvent(new SignUpEvent(applicationContext, this));
+            break;
+        case "Signup As":
             break;
         case "Login":
             Entry<String, String> selected = (Entry<String, String>)providers.getSelectedItem();

@@ -5,16 +5,16 @@
  */
 package kkdt.sample.aws.cognito.event;
 
-import org.springframework.context.ApplicationContext;
+import java.awt.Window;
 
-import kkdt.sample.aws.cognito.SampleConsole;
+import org.springframework.context.ApplicationContext;
 
 public class EmailConfirmationEvent extends CognitoEvent {
     private static final long serialVersionUID = 2130407745810494102L;
     
     public final String email;
     
-    public EmailConfirmationEvent(ApplicationContext source, SampleConsole reference, String email) {
+    public EmailConfirmationEvent(ApplicationContext source, Window reference, String email) {
         super(source, reference);
         this.email = email;
     }

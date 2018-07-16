@@ -5,17 +5,17 @@
  */
 package kkdt.sample.aws.cognito.event;
 
+import java.awt.Window;
+
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ApplicationContextEvent;
-
-import kkdt.sample.aws.cognito.SampleConsole;
 
 public abstract class CognitoEvent extends ApplicationContextEvent {
     private static final long serialVersionUID = 5905180346615871029L;
     
-    public final SampleConsole reference;
+    public final Window reference;
     
-    public CognitoEvent(ApplicationContext applicationContext, SampleConsole console) {
+    public CognitoEvent(ApplicationContext applicationContext, Window console) {
         super(applicationContext);
         this.reference = console;
     }

@@ -51,19 +51,6 @@ public class CognitoLoginController extends CognitoController<LoginEvent> {
             AWSCredentials clientCredentials = new BasicAWSCredentials(auth.getAccessToken(), auth.getIdToken());
             AWSCredentialsProvider authenticatedCredentials = new AWSStaticCredentialsProvider(clientCredentials);
             
-            // reassign with authenticated credentials
-//            cognito = AWSCognitoIdentityProviderClientBuilder.standard()
-//                .withCredentials(authenticatedCredentials)
-//                .withRegion(this.region)
-//                .build();
-            
-            // reassign the cognity identity provider service to the new authentication
-//            cognitoIdentity = AmazonCognitoIdentityClientBuilder
-//                .standard()
-//                .withCredentials(authenticatedCredentials)
-//                .withRegion(this.region)
-//                .build();
-            
             // Example identity id: region and user pool id below
             // cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_EPyUfpQq7
             
@@ -74,11 +61,7 @@ public class CognitoLoginController extends CognitoController<LoginEvent> {
             ApplicationContext context = event.getApplicationContext();
             context.publishEvent(new AuthenticatedEvent(context, event.reference, 
                 authenticatedCredentials.getCredentials().getAWSSecretKey(), 
-                credentials));
-            
-            SampleConsole console = event.reference;
-            console.enableActions(false);
-            console.enableInputs(false);
+                credentials, authenticatedCredentials));
             
         } catch (NotAuthorizedException e) {
             error(event.reference, "Not Authorized", "Guest Access Error");

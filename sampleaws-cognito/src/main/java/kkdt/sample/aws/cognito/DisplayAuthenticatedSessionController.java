@@ -56,8 +56,9 @@ public class DisplayAuthenticatedSessionController extends CognitoController<Aut
     public void onApplicationEvent(AuthenticatedEvent event) {
         try {
             JSONObject _payload = null;
-            if(event.awsSecretKey != null) {
-                SignedJWT jwt = (SignedJWT)JWTParser.parse(event.awsSecretKey);
+            if(event.idToken != null) {
+                String _jwt = event.idToken;
+                SignedJWT jwt = (SignedJWT)JWTParser.parse(_jwt);
                 Payload payload = jwt.getPayload();
                 _payload = payload.toJSONObject();
             }
